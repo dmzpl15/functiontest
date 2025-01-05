@@ -1,0 +1,8 @@
+[build]
+  publish = "."                    # 정적 파일 디렉토리 (현재 루트)
+  functions = "netlify/functions"  # Functions 디렉토리
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
