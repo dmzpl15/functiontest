@@ -3,23 +3,143 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Netlify Functions Test</title>
+  <title>Real Estate Full Data</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Netlify Functions Test</h1>
-  <button id="call-function">Call Function</button>
-  <pre id="output"></pre>
+  <header>
+    <h1>Real Estate Listings (Full Data)</h1>
+    <button id="fetch-data-btn">Fetch Real Estate Data</button>
+  </header>
+  
+  <main>
+    <div id="loader" class="hidden">Loading...</div>
+    <div id="error-message" class="hidden"></div>
+    <div id="table-container" class="hidden">
+      <table id="real-estate-table">
+        <thead id="table-head"></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </main>
 
   <script>
-    document.getElementById("call-function").addEventListener("click", async () => {
-      const output = document.getElementById("output");
-      output.textContent = "Loading...";
+    // 키를 한글로 변환하는 매핑
+    const keyMappings = {
+      articleNo: "게시물 번호",
+      articleName: "매물 이름",
+      articleStatus: "상태",
+      realEstateTypeCode: "부동산 코드",
+      realEstateTypeName: "부동산 유형",
+      articleRealEstateTypeCode: "매물 코드",
+      articleRealEstateTypeName: "매물 유형",
+      tradeTypeCode: "거래 코드",
+      tradeTypeName: "거래 유형",
+      verificationTypeCode: "인증 코드",
+      floorInfo: "층수 정보",
+      priceChangeState: "가격 변화 상태",
+      isPriceModification: "가격 수정 여부",
+      dealOrWarrantPrc: "가격",
+      areaName: "면적 이름",
+      area1: "공급 면적",
+      area2: "전용 면적",
+      direction: "방향",
+      articleConfirmYmd: "확인 날짜",
+      representativeImgUrl: "대표 이미지 URL",
+      representativeImgTypeCode: "이미지 코드",
+      representativeImgThumb: "이미지 썸네일",
+      siteImageCount: "이미지 수",
+      articleFeatureDesc: "특징 설명",
+      tagList: "태그",
+      buildingName: "건물 이름",
+      sameAddrCnt: "동일 주소 개수",
+      sameAddrDirectCnt: "동일 주소 직접 거래",
+      sameAddrMaxPrc: "최고 가격",
+      sameAddrMinPrc: "최저 가격",
+      cpid: "제공자 ID",
+      cpName: "제공자 이름",
+      cpPcArticleUrl: "PC URL",
+      cpPcArticleBridgeUrl: "브릿지 URL",
+      cpPcArticleLinkUseAtArticleTitleYn: "제목에 링크 사용",
+      cpPcArticleLinkUseAtCpNameYn: "제공자 이름에 링크 사용",
+      cpMobileArticleUrl: "모바일 URL",
+      cpMobileArticleLinkUseAtArticleTitleYn: "제목에 모바일 링크 사용",
+      cpMobileArticleLinkUseAtCpNameYn: "제공자 이름에 모바일 링크 사용",
+      latitude: "위도",
+      longitude: "경도",
+      isLocationShow: "위치 표시 여부",
+      realtorName: "중개업소 이름",
+      realtorId: "중개업소 ID",
+      tradeCheckedByOwner: "소유자 확인 여부",
+      isDirectTrade: "직거래 여부",
+      isInterest: "관심 여부",
+      isComplex: "단지 여부",
+      detailAddress: "상세 주소",
+      detailAddressYn: "상세 주소 여부",
+      isVrExposed: "VR 공개 여부"
+    };
+
+    document.getElementById("fetch-data-btn").addEventListener("click", async () => {
+      const loader = document.getElementById("loader");
+      const errorMessage = document.getElementById("error-message");
+      const tableContainer = document.getElementById("table-container");
+      const tableHead = document.getElementById("table-head");
+      const tableBody = document.getElementById("table-body");
+      
+      // Reset UI
+      loader.classList.remove("hidden");
+      errorMessage.classList.add("hidden");
+      tableContainer.classList.add("hidden");
+      tableHead.innerHTML = "";
+      tableBody.innerHTML = "";
+
       try {
-        const response = await fetch("/.netlify/functions/hello");
-        const data = await response.json();
-        output.textContent = JSON.stringify(data, null, 2);
+        const response = await fetch("/.netlify/functions/fetchRealEstateData");
+        if (!response.ok) throw new Error(`Error: ${response.statusText}`);
+        
+        const { articleList } = await response.json();
+        loader.classList.add("hidden");
+        
+        if (articleList.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="100%">No results found</td></tr>`;
+        } else {
+          // Get keys from the first object to generate table headers
+          const headers = Object.keys(articleList[0]);
+          const headerRow = document.createElement("tr");
+          headers.forEach((header) => {
+            const th = document.createElement("th");
+            th.textContent = keyMappings[header] || header; // 키 매핑, 매핑되지 않은 항목은 원래 키 사용
+            headerRow.appendChild(th);
+          });
+          tableHead.appendChild(headerRow);
+
+          // Add data rows
+          articleList.forEach((article) => {
+            const row = document.createElement("tr");
+            headers.forEach((header) => {
+              const td = document.createElement("td");
+              const value = article[header];
+
+              // 태그 배열 처리
+              if (Array.isArray(value)) {
+                td.textContent = value.join(", ");
+              } else if (header === "cpPcArticleUrl") {
+                // 링크 처리
+                td.innerHTML = `<a href="${value}" target="_blank">상세보기</a>`;
+              } else {
+                td.textContent = value !== undefined ? value : "";
+              }
+              row.appendChild(td);
+            });
+            tableBody.appendChild(row);
+          });
+        }
+
+        tableContainer.classList.remove("hidden");
       } catch (error) {
-        output.textContent = "Error: " + error.message;
+        loader.classList.add("hidden");
+        errorMessage.textContent = error.message;
+        errorMessage.classList.remove("hidden");
       }
     });
   </script>
